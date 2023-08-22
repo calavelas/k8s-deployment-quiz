@@ -18,25 +18,29 @@ def get_deployment_details(deployment_name, namespace):
     return {'replicas': replicas, 'cpu_request': cpu_request, 'mem_request': mem_request, 'labels': labels}
 
 @app.route('/')
-def hello_world():
+def main():
+    deployment_name = "k8s-deployment-quiz"
     namespace = os.getenv("NAMESPACE")
+
+    # Use namespace as a seed for randomization
     random.seed(hash(namespace))
 
-    # Define correct answers and quiz questions
+    # Define correct answers
     correct_answers = {
-        'replicas': random.randint(1, 3),
+        'replicas': random.choice([1, 2, 3]),
         'cpu_request': random.choice(["250", "300", "350m"]),
-        'memory_request': random.choice(["256Mi", "512Mi"]),
+        'memory_request': random.choice(["256Mi", "512Mi"]), # Change to match 'memory_request'
         'your_name': os.getenv("YOUR_NAME"),
         'image': os.getenv("IMAGE")
     }
 
+    # Quiz questions
     quiz_questions = [
-        ('Set Pod Replica', 'replicas', get_deployment_details()['replicas']),
-        ('Set Pod Resource Request (CPU)', 'cpu_request', get_deployment_details()['cpu_request']),
-        ('Set Pod Resource Request (Memory)', 'memory_request', get_deployment_details()['memory_request']),
-        ('Set Pod Environment Variable: YOUR_NAME', 'your_name', os.getenv("YOUR_NAME")),
-        ('Set Pod Environment Variable: IMAGE', 'image', os.getenv("IMAGE")),
+        (f'Set Pod Replica to {correct_answers["replicas"]}', 'replicas'),
+        (f'Set Pod Resource Request (CPU) to {correct_answers["cpu_request"]}', 'cpu_request'),
+        (f'Set Pod Resource Request (Memory) to {correct_answers["memory_request"]}', 'memory_request'),
+        (f'Set Pod Environment Variable: YOUR_NAME to {correct_answers["your_name"]}', 'your_name'),
+        (f'Set Pod Environment Variable: IMAGE to {correct_answers["image"]}', 'image'),
     ]
 
     # Shuffle the questions based on the namespace seed
@@ -49,28 +53,39 @@ def hello_world():
     if current_question_number > 0:
         previous_question_key = quiz_questions[current_question_number - 1][1]
         previous_correct_answer = correct_answers[previous_question_key]
-        previous_user_answer = quiz_questions[current_question_number - 1][2]
+        deployment_details = get_deployment_details(deployment_name, namespace)
+        previous_user_answer = str(deployment_details[previous_question_key] if previous_question_key in deployment_details else os.getenv(previous_question_key))
         if previous_correct_answer != previous_user_answer:
             return f'Incorrect answer for {quiz_questions[current_question_number - 1][0]}! Try again.'
-
-    # Show the current question
-    current_question, current_question_key, _ = quiz_questions[current_question_number]
-    current_correct_answer = correct_answers[current_question_key]
-    current_user_answer = request.args.get(current_question_key)
-    if current_user_answer is not None and current_correct_answer != current_user_answer:
-        return f'Incorrect answer for {current_question}! Try again.'
-
-    # Move to the next question if the current answer is correct
-    if current_user_answer is not None:
-        current_question_number += 1
 
     # Return the final result if all questions are answered
     if current_question_number >= len(quiz_questions):
         return 'Congratulations! You have completed the quiz.'
 
-    # Show the next question
-    next_question, _, _ = quiz_questions[current_question_number]
-    return f'Next question: {next_question}. <a href="/?question={current_question_number}">Click here to continue</a>'
+    # Show the current question
+    current_question, current_question_key = quiz_questions[current_question_number]
+    deployment_details = get_deployment_details(deployment_name, namespace)
+    current_status = deployment_details[current_question_key] if current_question_key in deployment_details else os.getenv(current_question_key)
+
+    # Constructing the HTML output
+    output = f"""
+    Hello, {os.getenv("YOUR_NAME")}
+    <img src="Hello_There.gif" alt="Hello There">
+
+    Let’s play some game!
+    We have Kubernetes Deployment here but it doesn’t work properly
+    I want you to help me fix this deployment to meet the requirements 
+
+    Deployment Status
+    {current_question}: {current_status}
+
+    Task
+    Task{current_question_number + 1}: {current_question} (Pending)
+    
+    Please make the necessary changes to the Kubernetes deployment and refresh this page to verify.
+    """
+
+    return output
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0', port=80)
