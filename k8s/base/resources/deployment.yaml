@@ -15,5 +15,6 @@ spec:
       containers:
       - name: k8s-deployment-quiz
         image: calavelas/k8s-deployment-quiz:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 80

@@ -20,7 +20,13 @@ def get_deployment_details(deployment_name, namespace):
 @app.route('/')
 def main():
     deployment_name = "k8s-deployment-quiz"
-    namespace = os.getenv("NAMESPACE")
+
+    # Get namespace
+    try:
+        with open('/var/run/secrets/kubernetes.io/serviceaccount/namespace', 'r') as f:
+            namespace = f.read().strip()
+    except FileNotFoundError:
+        return "Unable to find namespace. Make sure your pod has the necessary permissions."
 
     # Use namespace as a seed for randomization
     random.seed(hash(namespace))
