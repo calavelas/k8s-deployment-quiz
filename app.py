@@ -47,10 +47,10 @@ def main():
     # Quiz questions
     quiz_questions = [
         (f'Set Pod Replica to {correct_answers["replicas"]}', 'replicas'),
-        (f'Set Pod Resource Request (CPU) to {correct_answers["cpu_request"]}', 'cpu_request'),
-        (f'Set Pod Resource Request (Memory) to {correct_answers["memory_request"]}', 'memory_request'),
-        (f'Set Pod Environment Variable: YOUR_NAME to {correct_answers["your_name"]}', 'your_name'),
-        (f'Set Pod Environment Variable: IMAGE to {correct_answers["image"]}', 'image'),
+        (f'Set Pod Resource Request (CPU) to {correct_answers["cpu_request"]}'),
+        (f'Set Pod Resource Request (Memory) to {correct_answers["memory_request"]}'),
+        (f'Set Pod Environment Variable: YOUR_NAME to your naame'),
+        (f'Set Pod Environment Variable: IMAGE to image url of any image you like'),
     ]
 
     # Shuffle the questions based on the namespace seed
