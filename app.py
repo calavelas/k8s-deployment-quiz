@@ -70,7 +70,7 @@ def main():
     # Constructing the HTML output
     output = f"""
     Hello, {os.getenv("YOUR_NAME")}
-    <img src="Hello_There.gif" alt="Hello There">
+    <img src="{os.getenv("IMAGE")}" alt="Hello There">
 
     Let’s play some game!
     We have Kubernetes Deployment here but it doesn’t work properly
