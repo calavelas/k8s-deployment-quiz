@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: k8s-deployment-quiz
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: k8s-deployment-quiz

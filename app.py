@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, redirect
 from kubernetes import client, config
 import os
 import random
@@ -61,13 +61,14 @@ def main():
     # Get the current question number from the URL
     current_question_number = int(request.args.get('question', 0))
 
-    # Check if the previous answer was correct
     if current_question_number > 0:
         previous_question_key = quiz_questions[current_question_number - 1][1]
         previous_correct_answer = correct_answers[previous_question_key]
         deployment_details = get_deployment_details(deployment_name, namespace)
         previous_user_answer = str(deployment_details[previous_question_key] if previous_question_key in deployment_details else os.getenv(previous_question_key))
-        if previous_correct_answer != previous_user_answer:
+        if previous_correct_answer == previous_user_answer:
+            return redirect(f"/?question={current_question_number}")
+        else:
             return f'Incorrect answer for {quiz_questions[current_question_number - 1][0]}! Try again.'
 
     # Return the final result if all questions are answered
