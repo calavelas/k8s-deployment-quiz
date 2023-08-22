@@ -17,6 +17,20 @@ def get_deployment_details(deployment_name, namespace):
 
     return {'replicas': replicas, 'cpu_request': cpu_request, 'mem_request': mem_request, 'labels': labels}
 
+def get_correct_answers(namespace):
+    namespace_value = sum(ord(c) for c in namespace)
+    replicas_choice = [1, 2, 3][namespace_value % 3]
+    cpu_request_choice = ["250", "300", "350m"][namespace_value % 3]
+    memory_request_choice = ["256Mi", "512Mi"][namespace_value % 2]
+    
+    return {
+        'replicas': replicas_choice,
+        'cpu_request': cpu_request_choice,
+        'memory_request': memory_request_choice,
+        'your_name': os.getenv("YOUR_NAME"),
+        'image': os.getenv("IMAGE")
+    }
+
 @app.route('/')
 def main():
     deployment_name = "k8s-deployment-quiz"
@@ -28,17 +42,9 @@ def main():
     except FileNotFoundError:
         return "Unable to find namespace. Make sure your pod has the necessary permissions."
 
-    # Use namespace as a seed for randomization
     random.seed(hash(namespace))
-
-    # Define correct answers
-    correct_answers = {
-        'replicas': random.choice([1, 2, 3]),
-        'cpu_request': random.choice(["250", "300", "350m"]),
-        'memory_request': random.choice(["256Mi", "512Mi"]), # Change to match 'memory_request'
-        'your_name': os.getenv("YOUR_NAME"),
-        'image': os.getenv("IMAGE")
-    }
+    # Use namespace as a seed for randomization
+    correct_answers = get_correct_answers(namespace)
 
     # Quiz questions
     quiz_questions = [
@@ -69,29 +75,57 @@ def main():
         return 'Congratulations! You have completed the quiz.'
 
     # Show the current question
-    current_question, current_question_key = quiz_questions[current_question_number]
     deployment_details = get_deployment_details(deployment_name, namespace)
-    current_status = deployment_details[current_question_key] if current_question_key in deployment_details else os.getenv(current_question_key)
 
-    # Constructing the HTML output
-    output = f"""
-    Hello, {os.getenv("YOUR_NAME")}
-    <img src="{os.getenv("IMAGE")}" alt="Hello There">
+    completed_tasks = ""
+    for i in range(current_question_number):
+        question_text, question_key = quiz_questions[i]
+        status = get_deployment_details(deployment_name, namespace)[question_key] if question_key in deployment_details else os.getenv(question_key)
+        completed_tasks += f"Task{i + 1}: {question_text} (Success) - Deployment Status: {status}<br>"
 
-    Let’s play some game!
-    We have Kubernetes Deployment here but it doesn’t work properly
-    I want you to help me fix this deployment to meet the requirements 
+        # Constructing the HTML output
+        output = f"""
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                margin: 20px;
+            }}
+            .header {{
+                font-size: 24px;
+                font-weight: bold;
+            }}
+            .content {{
+                font-size: 18px;
+                line-height: 1.5;
+            }}
+            .image {{
+                width: 100px;
+                margin-bottom: 15px;
+            }}
+            .task {{
+                margin-top: 20px;
+                font-weight: bold;
+            }}
+        </style>
+        <div class="header">Hello, {os.getenv("YOUR_NAME")}</div>
+        <img class="image" src="{os.getenv("IMAGE")}" alt="Hello There">
+        <div class="content">
+            Let’s play some game!<br>
+            We have Kubernetes Deployment here but it doesn’t work properly<br>
+            I want you to help me fix this deployment to meet the requirements<br><br>
 
-    Deployment Status
-    {current_question}: {current_status}
+            Deployment Status<br>
+            {completed_tasks} {/* Displaying completed tasks */}
+            {current_question}: {current_status}<br><br>
 
-    Task
-    Task{current_question_number + 1}: {current_question} (Pending)
-    
-    Please make the necessary changes to the Kubernetes deployment and refresh this page to verify.
-    """
+            <div class="task">Task</div>
+            Task{current_question_number + 1}: {current_question} (Pending)<br><br>
+        </div>
 
-    return output
+        Please make the necessary changes to the Kubernetes deployment and refresh this page to verify.
+        """
+
+        return output
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)
