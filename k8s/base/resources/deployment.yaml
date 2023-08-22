@@ -16,6 +16,9 @@ spec:
       - name: k8s-deployment-quiz
         image: calavelas/k8s-deployment-quiz:latest
         imagePullPolicy: Always
+        env:
+        - name: YOUR_NAME
+          value: "GAP"
         ports:
         - containerPort: 80
         resources:
