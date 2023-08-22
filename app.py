@@ -42,8 +42,6 @@ def main():
     except FileNotFoundError:
         return "Unable to find namespace. Make sure your pod has the necessary permissions."
 
-    random.seed(hash(namespace))
-    # Use namespace as a seed for randomization
     correct_answers = get_correct_answers(namespace)
 
     # Quiz questions
@@ -56,7 +54,9 @@ def main():
     ]
 
     # Shuffle the questions based on the namespace seed
-    random.shuffle(quiz_questions)
+    seed_value = hash(namespace)
+    random.seed(seed_value)
+    random.shuffle(quiz_questions, random=lambda: seed_value % (10 ** 9) / (10 ** 9))
 
     # Get the current question number from the URL
     current_question_number = int(request.args.get('question', 0))
