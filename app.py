@@ -76,7 +76,8 @@ def main():
 
     # Show the current question
     deployment_details = get_deployment_details(deployment_name, namespace)
-
+    current_question, current_question_key = quiz_questions[current_question_number]
+    current_status = deployment_details[current_question_key] if current_question_key in deployment_details else os.getenv(current_question_key)
     completed_tasks = ""
     for i in range(current_question_number):
         question_text, question_key = quiz_questions[i]
@@ -115,7 +116,7 @@ def main():
             I want you to help me fix this deployment to meet the requirements<br><br>
 
             Deployment Status<br>
-            {completed_tasks} {/* Displaying completed tasks */}
+            {completed_tasks}
             {current_question}: {current_status}<br><br>
 
             <div class="task">Task</div>
