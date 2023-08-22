@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-deployment-quiz
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: k8s-deployment-quiz
+  template:
+    metadata:
+      labels:
+        app: k8s-deployment-quiz
+    spec:
+      containers:
+      - name: k8s-deployment-quiz
+        image: calavelas/k8s-deployment-quiz:latest
+        ports:
+        - containerPort: 80
