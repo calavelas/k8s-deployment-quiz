@@ -85,48 +85,48 @@ def main():
         completed_tasks += f"Task{i + 1}: {question_text} (Success) - Deployment Status: {status}<br>"
 
         # Constructing the HTML output
-        output = f"""
-        <style>
-            body {{
-                font-family: Arial, sans-serif;
-                margin: 20px;
-            }}
-            .header {{
-                font-size: 24px;
-                font-weight: bold;
-            }}
-            .content {{
-                font-size: 18px;
-                line-height: 1.5;
-            }}
-            .image {{
-                width: 100px;
-                margin-bottom: 15px;
-            }}
-            .task {{
-                margin-top: 20px;
-                font-weight: bold;
-            }}
-        </style>
-        <div class="header">Hello, {os.getenv("YOUR_NAME")}</div>
-        <img class="image" src="{os.getenv("IMAGE")}" alt="Hello There">
-        <div class="content">
-            Let’s play some game!<br>
-            We have Kubernetes Deployment here but it doesn’t work properly<br>
-            I want you to help me fix this deployment to meet the requirements<br><br>
+    output = f"""
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }}
+        .header {{
+            font-size: 24px;
+            font-weight: bold;
+        }}
+        .content {{
+            font-size: 18px;
+            line-height: 1.5;
+        }}
+        .image {{
+            width: 100px;
+            margin-bottom: 15px;
+        }}
+        .task {{
+            margin-top: 20px;
+            font-weight: bold;
+        }}
+    </style>
+    <div class="header">Hello, {os.getenv("YOUR_NAME")}</div>
+    <img class="image" src="{os.getenv("IMAGE")}" alt="Hello There">
+    <div class="content">
+        Let’s play some game!<br>
+        We have Kubernetes Deployment here but it doesn’t work properly<br>
+        I want you to help me fix this deployment to meet the requirements<br><br>
 
-            Deployment Status<br>
-            {completed_tasks}
-            {current_question}: {current_status}<br><br>
+        Deployment Status<br>
+        {completed_tasks}
+        {current_question}: {current_status}<br><br>
 
-            <div class="task">Task</div>
-            Task{current_question_number + 1}: {current_question} (Pending)<br><br>
-        </div>
+        <div class="task">Task</div>
+        Task{current_question_number + 1}: {current_question} (Pending)<br><br>
+    </div>
 
-        Please make the necessary changes to the Kubernetes deployment and refresh this page to verify.
-        """
+    Please make the necessary changes to the Kubernetes deployment and refresh this page to verify.
+    """
 
-        return output
+    return output
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)
