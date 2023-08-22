@@ -27,4 +27,4 @@ jobs:
       with:
         context: .
         push: true
-        tags: calavelas/vault-secret-checker:latest
+        tags: calavelas/k8s-deployment-quiz:latest
