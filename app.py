@@ -19,9 +19,9 @@ def get_deployment_details(deployment_name, namespace):
 
 def get_correct_answers(namespace):
     namespace_value = sum(ord(c) for c in namespace)
-    replicas_choice = [1, 2, 3][namespace_value % 3]
-    cpu_request_choice = ["250", "300", "350m"][namespace_value % 3]
-    memory_request_choice = ["256Mi", "512Mi"][namespace_value % 2]
+    replicas_choice = [2, 3][namespace_value % 2]
+    cpu_request_choice = ["250", "300"][namespace_value % 2]
+    memory_request_choice = ["512Mi", "640Mi"][namespace_value % 2]
     
     return {
         'replicas': replicas_choice,
