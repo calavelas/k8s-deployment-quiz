@@ -31,16 +31,16 @@ def get_correct_answers(namespace):
 
 @app.route('/')
 def main():
-    deployment_name = "k8s-deployment-quiz"
-    deployment_details = get_deployment_details(deployment_name, namespace)
-
     try:
         with open('/var/run/secrets/kubernetes.io/serviceaccount/namespace', 'r') as f:
             namespace = f.read().strip()
     except FileNotFoundError:
         return "Unable to find namespace. Make sure your pod has the necessary permissions."
-    
+
+    deployment_name = "k8s-deployment-quiz"
     correct_answers = get_correct_answers(namespace)
+    deployment_details = get_deployment_details(deployment_name, namespace)
+
     deployment_status = f"""
     Namespace : <span style='color: blue;'>{namespace}</span><br>
     Pod Replica : <span style='color: blue;'>{deployment_details['replicas']}</span><br>
