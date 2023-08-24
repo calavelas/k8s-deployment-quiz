@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect
+from flask import Flask
 from kubernetes import client, config
 import os
 import random
@@ -13,80 +13,101 @@ def get_deployment_details(deployment_name, namespace):
     replicas = deployment.status.replicas
     cpu_request = deployment.spec.template.spec.containers[0].resources.requests['cpu']
     mem_request = deployment.spec.template.spec.containers[0].resources.requests['memory']
-    labels = deployment.metadata.labels
 
-    return {'replicas': replicas, 'cpu_request': cpu_request, 'mem_request': mem_request, 'labels': labels}
+    return {'replicas': replicas, 'cpu_request': cpu_request, 'mem_request': mem_request}
 
 def get_correct_answers(namespace):
     namespace_value = sum(ord(c) for c in namespace)
-    replicas_choice = [2, 3][namespace_value % 2]
-    cpu_request_choice = ["250", "300"][namespace_value % 2]
-    memory_request_choice = ["512Mi", "640Mi"][namespace_value % 2]
-    
+    random.seed(namespace_value) # Seeding the random generator with the namespace value
+    replicas_choice = random.choice([1, 2, 3, 4, 5])
+    cpu_request_choice = random.choice(["250m", "500m"])
+    memory_request_choice = random.choice(["512Mi", "768Mi", "1024Mi"])
+
     return {
         'replicas': replicas_choice,
         'cpu_request': cpu_request_choice,
         'memory_request': memory_request_choice,
-        'your_name': os.getenv("YOUR_NAME"),
-        'image': os.getenv("IMAGE")
     }
 
 @app.route('/')
 def main():
     deployment_name = "k8s-deployment-quiz"
+    deployment_details = get_deployment_details(deployment_name, namespace)
 
-    # Get namespace
     try:
         with open('/var/run/secrets/kubernetes.io/serviceaccount/namespace', 'r') as f:
             namespace = f.read().strip()
     except FileNotFoundError:
         return "Unable to find namespace. Make sure your pod has the necessary permissions."
-
+    
     correct_answers = get_correct_answers(namespace)
+    deployment_status = f"""
+    Namespace : <span style='color: blue;'>{namespace}</span><br>
+    Pod Replica : <span style='color: blue;'>{deployment_details['replicas']}</span><br>
+    Pod Resource CPU Request : <span style='color: blue;'>{deployment_details['cpu_request']}</span><br>
+    Pod Resource Memory Request : <span style='color: blue;'>{deployment_details['mem_request']}</span><br>
+    Environment Variable <b>YOUR_NAME</b> value : <span style='color: blue;'>{os.getenv("YOUR_NAME", "NONE")}</span><br>
+    Environment Variable <b>IMAGE_URL</b> value : <span style='color: blue;'>{os.getenv("IMAGE_URL", "NONE")}</span><br>
+    """
 
-    # Quiz questions
+
     quiz_questions = [
-        (f'Set Pod Replica to {correct_answers["replicas"]}', 'replicas'),
-        (f'Set Pod Resource Request (CPU) to {correct_answers["cpu_request"]}', 'cpu_request'),
-        (f'Set Pod Resource Request (Memory) to {correct_answers["memory_request"]}', 'memory_request'),
-        (f'Set Pod Environment Variable: YOUR_NAME to your name', 'your_name'),
-        (f'Set Pod Environment Variable: IMAGE to url of image you like', 'image'),
+        {
+            'type': 'fix_choice',
+            'question_text': f'1. Set Replica to <span style="color: blue;">{correct_answers["replicas"]}</span>',
+            'status': "Pending",
+            'key_to_check': 'replicas',
+            'correct_answer': correct_answers["replicas"]
+        },
+        {
+            'type': 'fix_choice',
+            'question_text': f'2. Set Resource Request (CPU) to <span style="color: blue;">{correct_answers["cpu_request"]}</span>',
+            'status': "Pending",
+            'key_to_check': 'cpu_request',
+            'correct_answer': correct_answers["cpu_request"]
+        },
+        {
+            'type': 'fix_choice',
+            'question_text': f'3. Set Resource Request (Memory) to <span style="color: blue;">{correct_answers["memory_request"]}</span>',
+            'status': "Pending",
+            'key_to_check': 'mem_request',
+            'correct_answer': correct_answers["memory_request"]
+        },
+        {   
+            'type': 'free_text',
+            'environment_variable': 'YOUR_NAME',
+            'question_text': f'4. Set Environment Variable <b>YOUR_NAME</b> to <span style="color: blue;">your name</span>',
+            'status': "Pending",
+        },
+        {   
+            'type': 'free_text',
+            'environment_variable': 'IMAGE_URL',
+            'question_text': f'5. Set Environment Variable <b>IMAGE_URL</b> to <span style="color: blue;">any image you like</span>',
+            'status': "Pending",
+        }
     ]
 
-    # Shuffle the questions based on the namespace seed
-    seed_value = hash(namespace)
-    random.seed(seed_value)
-    random.shuffle(quiz_questions, random=lambda: seed_value % (10 ** 9) / (10 ** 9))
+    task_status = ""
+    for task in quiz_questions:
+        if task['type'] == 'fix_choice':
+            key_to_check = task['key_to_check']
+            if key_to_check and deployment_details[key_to_check] == task['correct_answer']:
+                task['status'] = "Correct"
+                color = "green"
+            else:
+                task['status'] = "Incorrect"
+                color = "red"
 
-    # Get the current question number from the URL
-    current_question_number = int(request.args.get('question', 0))
-
-    if current_question_number > 0:
-        previous_question_key = quiz_questions[current_question_number - 1][1]
-        previous_correct_answer = correct_answers[previous_question_key]
-        deployment_details = get_deployment_details(deployment_name, namespace)
-        previous_user_answer = str(deployment_details[previous_question_key] if previous_question_key in deployment_details else os.getenv(previous_question_key))
-        if previous_correct_answer == previous_user_answer:
-            return redirect(f"/?question={current_question_number}")
-        else:
-            return f'Incorrect answer for {quiz_questions[current_question_number - 1][0]}! Try again.'
-
-    # Return the final result if all questions are answered
-    if current_question_number >= len(quiz_questions):
-        return 'Congratulations! You have completed the quiz.'
-
-    # Show the current question
-    deployment_details = get_deployment_details(deployment_name, namespace)
-    current_question, current_question_key = quiz_questions[current_question_number]
-    current_status = deployment_details[current_question_key] if current_question_key in deployment_details else os.getenv(current_question_key)
-    completed_tasks = ""
-    for i in range(current_question_number):
-        question_text, question_key = quiz_questions[i]
-        status = get_deployment_details(deployment_name, namespace)[question_key] if question_key in deployment_details else os.getenv(question_key)
-        completed_tasks += f"Task{i + 1}: {question_text} (Success) - Deployment Status: {status}<br>"
-
-        # Constructing the HTML output
+        if task['type'] == 'free_text':
+            if os.getenv(task['environment_variable'], "NONE") != "NONE":
+                task['status'] = "Correct"
+                color = "green"
+            else:
+                task['status'] = "Incorrect"
+                color = "red"
+        task_status += f"{task['question_text']} <span style='color: {color}'>({task['status']})</span><br>"
     output = f"""
+
     <style>
         body {{
             font-family: Arial, sans-serif;
@@ -101,7 +122,7 @@ def main():
             line-height: 1.5;
         }}
         .image {{
-            width: 100px;
+            width: 500px;
             margin-bottom: 15px;
         }}
         .task {{
@@ -109,22 +130,20 @@ def main():
             font-weight: bold;
         }}
     </style>
-    <div class="header">Hello, {os.getenv("YOUR_NAME")}</div>
-    <img class="image" src="{os.getenv("IMAGE")}" alt="Hello There">
+    <img class="image" src="{os.getenv("IMAGE_URL","https://media2.giphy.com/media/xTiIzJSKB4l7xTouE8/giphy.gif")}" alt="Hello There">
+    <div class="header">Hello {os.getenv("YOUR_NAME", "there!")}</div>
     <div class="content">
         Let’s play some game!<br>
         We have Kubernetes Deployment here but it doesn’t work properly<br>
         I want you to help me fix this deployment to meet the requirements<br><br>
-
-        Deployment Status<br>
-        {completed_tasks}
-        {current_question}: {current_status}<br><br>
-
-        <div class="task">Task</div>
-        Task{current_question_number + 1}: {current_question} (Pending)<br><br>
+        <b>Requirement Task</b><br>
+        {task_status}
+        <br>
+        <b>Deployment Status</b><br>
+        {deployment_status}
+        <br>
+        <b>Please make the necessary changes to the Kubernetes deployment and refresh this page to verify.</b>
     </div>
-
-    Please make the necessary changes to the Kubernetes deployment and refresh this page to verify.
     """
 
     return output
